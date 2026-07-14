@@ -306,6 +306,8 @@ function App(){
   const [npName,setNpName]=useState('');
   const [toast,setToast]=useState(null);
   const [showLines,setShowLines]=useState(true);
+  const [showExportMenu,setShowExportMenu]=useState(false);
+  const [customExt,setCustomExt]=useState('');
   const ttimer=useRef(null);
   const taRef=useRef(null);
   const gutterRef=useRef(null);
@@ -417,6 +419,16 @@ function App(){
     const url=URL.createObjectURL(new Blob([data],{type:'application/json'}));
     const a=document.createElement('a');a.href=url;a.download=`${af.replace(/\s+/g,'_')}_evolution.json`;a.click();URL.revokeObjectURL(url);
     msg('Exported');
+  }
+
+  function doExportNode(ext){
+    const text=viewCommit?viewCommit.snapshot:node.workingCopy;
+    const base=node.name.replace(/\s+/g,'_');
+    const cleanExt=ext.replace(/^\.+/,'').trim()||'txt';
+    const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+    const a=document.createElement('a');a.href=url;a.download=`${base}.${cleanExt}`;a.click();URL.revokeObjectURL(url);
+    setShowExportMenu(false);setCustomExt('');
+    msg(`Exported "${node.name}" as .${cleanExt}`);
   }
 
   function doImport(e){
@@ -539,6 +551,25 @@ function App(){
             <button className="btn accent xs" onClick={()=>{setEFrom(null);setEColor(nextColor);setEName('');setEModal(true);}}>🌿 New Variant</button>
             <span className="wc">{wc(node.workingCopy)} words · {node.workingCopy.length} chars</span>
           </>}
+          <div style={{position:'relative'}}>
+            <button className="btn ghost xs" onClick={()=>setShowExportMenu(v=>!v)} title="Save this variant's text to a file">💾 Save As… ▾</button>
+            {showExportMenu&&(
+              <>
+                <div style={{position:'fixed',inset:0,zIndex:9}} onClick={()=>setShowExportMenu(false)}/>
+                <div className="pdrop" style={{top:'calc(100% + 4px)'}}>
+                  <label className="fl" style={{fontSize:11,padding:'2px 9px'}}>File extension</label>
+                  <div style={{display:'flex',alignItems:'center',gap:4,padding:'4px 9px'}}>
+                    <span style={{fontSize:11,color:'var(--dim)'}}>.</span>
+                    <input className="fi" style={{padding:'3px 6px',fontSize:12,height:24}} placeholder="e.g. txt, html, csv" autoFocus
+                      value={customExt} onChange={e=>setCustomExt(e.target.value)}
+                      onClick={e=>e.stopPropagation()}
+                      onKeyDown={e=>{if(e.key==='Enter'&&customExt.trim())doExportNode(customExt);}}/>
+                    <button className="btn accent xs" disabled={!customExt.trim()} onClick={()=>doExportNode(customExt)}>Save</button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <label className="lnchk" style={{marginLeft:viewCommit?'auto':0}}>
             <input type="checkbox" checked={showLines} onChange={e=>setShowLines(e.target.checked)}/>
             Line numbers
